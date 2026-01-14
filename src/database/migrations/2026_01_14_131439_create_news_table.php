@@ -14,8 +14,16 @@ return new class extends Migration
         Schema::create('news', function (Blueprint $table) {
             $table->id();
             $table->string('title');
+            $table->string('slug')->unique();
             $table->text('description');
+            $table->boolean('is_published')->default(false);
+            $table->timestamp('published_at')->nullable();
+            $table->softDeletes();
             $table->timestamps();
+
+            $table->index('slug');
+            $table->index('is_published');
+            $table->index('published_at');
         });
     }
 
