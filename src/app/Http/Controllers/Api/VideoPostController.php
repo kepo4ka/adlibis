@@ -49,7 +49,12 @@ class VideoPostController extends Controller
             ->orderBy('created_at', 'asc');
 
         if ($cursor) {
-            $commentsQuery->where('created_at', '>', $cursor);
+            try {
+                $cursorDate = \Carbon\Carbon::parse($cursor);
+                $commentsQuery->where('created_at', '>', $cursorDate);
+            } catch (\Exception $e) {
+                // Invalid cursor format, ignore it
+            }
         }
 
         $comments = $commentsQuery->limit($limit + 1)->get();

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateVideoPostRequest extends FormRequest
 {
@@ -21,11 +22,11 @@ class UpdateVideoPostRequest extends FormRequest
      */
     public function rules(): array
     {
-        $videoPostId = $this->route('video_post') ?? $this->route('id');
+        $videoPost = $this->route('video-post');
 
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:video_posts,slug,'.$videoPostId],
+            'slug' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('video_posts', 'slug')->ignore($videoPost)],
             'description' => ['sometimes', 'required', 'string'],
             'is_published' => ['sometimes', 'boolean'],
             'published_at' => ['sometimes', 'nullable', 'date'],

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateNewsRequest extends FormRequest
 {
@@ -21,11 +22,11 @@ class UpdateNewsRequest extends FormRequest
      */
     public function rules(): array
     {
-        $newsId = $this->route('news') ?? $this->route('id');
+        $news = $this->route('news');
 
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'required', 'string', 'max:255', 'unique:news,slug,'.$newsId],
+            'slug' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('news', 'slug')->ignore($news)],
             'description' => ['sometimes', 'required', 'string'],
             'is_published' => ['sometimes', 'boolean'],
             'published_at' => ['sometimes', 'nullable', 'date'],
