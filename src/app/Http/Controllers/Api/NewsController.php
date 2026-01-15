@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreNewsRequest;
 use App\Http\Requests\Api\UpdateNewsRequest;
+use App\Http\Resources\Api\CommentResource;
 use App\Http\Resources\Api\NewsResource;
 use App\Models\News;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class NewsController extends Controller
@@ -37,10 +39,39 @@ class NewsController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(News $news): JsonResponse
+    public function show(Request $request, News $news): JsonResponse
     {
+        $cursor = $request->query('cursor');
+        $limit = (int) $request->query('limit', 20);
+
+        $commentsQuery = $news->comments()
+            ->with('user')
+            ->orderBy('created_at', 'asc');
+
+        if ($cursor) {
+            $commentsQuery->where('created_at', '>', $cursor);
+        }
+
+        $comments = $commentsQuery->limit($limit + 1)->get();
+        $hasMore = $comments->count() > $limit;
+
+        if ($hasMore) {
+            $comments = $comments->take($limit);
+        }
+
+        $nextCursor = $comments->isNotEmpty() 
+            ? $comments->last()->created_at->toISOString() 
+            : null;
+
         return response()->json([
             'data' => new NewsResource($news),
+            'comments' => [
+                'data' => CommentResource::collection($comments),
+                'meta' => [
+                    'next_cursor' => $nextCursor,
+                    'has_more' => $hasMore,
+                ],
+            ],
         ]);
     }
 

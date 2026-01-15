@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreVideoPostRequest;
 use App\Http\Requests\Api\UpdateVideoPostRequest;
+use App\Http\Resources\Api\CommentResource;
 use App\Http\Resources\Api\VideoPostResource;
 use App\Models\VideoPost;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class VideoPostController extends Controller
@@ -37,10 +39,39 @@ class VideoPostController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(VideoPost $videoPost): JsonResponse
+    public function show(Request $request, VideoPost $videoPost): JsonResponse
     {
+        $cursor = $request->query('cursor');
+        $limit = (int) $request->query('limit', 20);
+
+        $commentsQuery = $videoPost->comments()
+            ->with('user')
+            ->orderBy('created_at', 'asc');
+
+        if ($cursor) {
+            $commentsQuery->where('created_at', '>', $cursor);
+        }
+
+        $comments = $commentsQuery->limit($limit + 1)->get();
+        $hasMore = $comments->count() > $limit;
+
+        if ($hasMore) {
+            $comments = $comments->take($limit);
+        }
+
+        $nextCursor = $comments->isNotEmpty() 
+            ? $comments->last()->created_at->toISOString() 
+            : null;
+
         return response()->json([
             'data' => new VideoPostResource($videoPost),
+            'comments' => [
+                'data' => CommentResource::collection($comments),
+                'meta' => [
+                    'next_cursor' => $nextCursor,
+                    'has_more' => $hasMore,
+                ],
+            ],
         ]);
     }
 
